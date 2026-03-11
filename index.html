@@ -1,15 +1,911 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tailwind CSS</title>
+    <title>Malla Curricular Interactiva - Ciencia de la Computación</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            min-height: 100vh;
+        }
+
+        .course-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px;
+            font-size: 13px;
+            position: relative;
+            min-width: 140px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .course-node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Colores originales más oscuros */
+        .course-node.cs {
+            background: linear-gradient(135deg, #1e40af 0%, #0f3460 100%);
+            color: white;
+            border-left: 4px solid #082f49;
+        }
+
+        .course-node.cc {
+            background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+            color: white;
+            border-left: 4px solid #3c0f70;
+        }
+
+        .course-node.hh {
+            background: linear-gradient(135deg, #be185d 0%, #831843 100%);
+            color: white;
+            border-left: 4px solid #500724;
+        }
+
+        .course-node.pi {
+            background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
+            color: white;
+            border-left: 4px solid #6b2e08;
+        }
+
+        .course-node.gi {
+            background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+            color: white;
+            border-left: 4px solid #022c22;
+        }
+
+        .course-node.electivo {
+            background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+            color: white;
+            border-left: 4px solid #1e1b4b;
+        }
+
+        .course-node.pr {
+            background: linear-gradient(135deg, #991b1b 0%, #7c2d12 100%);
+            color: white;
+            border-left: 4px solid #5a1f12;
+        }
+
+        .course-node.completed {
+            opacity: 0.8;
+            border-left: 4px solid #22c55e;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.5) !important;
+        }
+
+        .course-node.completed::before {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #22c55e;
+        }
+
+        .course-code {
+            font-weight: bold;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .course-name {
+            font-size: 12px;
+            line-height: 1.3;
+        }
+
+        .course-credits {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .level-container {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .level-title {
+            text-align: center;
+            font-weight: bold;
+            padding: 16px 0 8px 0;
+            background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
+            border-bottom: 2px solid #d97706;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .courses-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        svg.dependencies {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .info-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: 3px solid #92400e;
+            border-radius: 12px;
+            padding: 16px;
+            max-width: 300px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: none;
+        }
+
+        .info-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .highlight-course {
+            filter: drop-shadow(0 0 8px rgba(30, 64, 175, 0.6));
+        }
+
+        .dim-course {
+            opacity: 0.4;
+            filter: grayscale(50%);
+        }
+
+        .prerequisite-link {
+            stroke: #9ca3af;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+        }
+
+        .prerequisite-link.active {
+            stroke: #ef4444;
+            stroke-width: 3;
+            opacity: 1;
+            stroke-dasharray: none;
+            filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.6));
+        }
+        
+        .prerequisite-link.related {
+            stroke: #f59e0b;
+            stroke-width: 2.5;
+            opacity: 0.8;
+            stroke-dasharray: none;
+            filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.5));
+        }
+
+        .search-box {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: white;
+            padding: 16px;
+            border-bottom: 3px solid #1e40af;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        .stats-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 3px solid #92400e;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 100;
+            max-width: 350px;
+            touch-action: none;
+            cursor: move;
+            user-select: none;
+        }
+
+        .stats-panel-header {
+            cursor: move;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #d97706;
+            margin-bottom: 12px;
+            font-weight: bold;
+            color: #92400e;
+        }
+
+        .stats-panel.dragging {
+            opacity: 0.95;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .stats-panel {
+                position: static;
+                margin: 16px;
+                max-width: none;
+            }
+        }
+    </style>
 </head>
-<body class="bg-white">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold mb-4">Ols</h1>
-        <p class="text-lg text-gray-700">Plantilla hecha :D</p>
+<body>
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-700 to-blue-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <h1 class="text-4xl font-bold mb-2">📚 Malla Curricular Interactiva</h1>
+            <p class="text-blue-100">Ciencia de la Computación - Universidad de Ingeniería</p>
+            <p class="text-blue-100 text-sm mt-2">Haz clic en un curso para marcar como completado y registra tu avance</p>
+        </div>
     </div>
+
+    <!-- Search Box -->
+    <div class="search-box">
+        <div class="max-w-7xl mx-auto">
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="🔍 Buscar curso por nombre o código..." 
+                class="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #1e40af 0%, #0f3460 100%);"></div>
+                    <span>Computación</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);"></div>
+                    <span>Cálculo</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #be185d 0%, #831843 100%);"></div>
+                    <span>Humanidades</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #d97706 0%, #92400e 100%);"></div>
+                    <span>Interdisciplinario</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #047857 0%, #064e3b 100%);"></div>
+                    <span>Gestión</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);"></div>
+                    <span>Electivos</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Panel (Movible) -->
+    <div class="stats-panel" id="statsPanel" style="border-color: #1e40af;">
+        <div class="stats-panel-header" style="color: #1e40af; border-color: #dbeafe;">📊 Progreso General</div>
+        
+        <div class="mb-4">
+            <div class="flex justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700">Créditos completados</span>
+                <span class="text-sm font-bold text-blue-600" id="creditsCompleted">0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div id="creditsBar" class="bg-blue-600 h-4 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <div class="text-xs text-gray-600 mt-1"><span id="creditsTotal">0</span> créditos totales</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center text-xs mb-4">
+            <div class="border-2 border-blue-200 rounded p-3 bg-blue-50">
+                <div class="font-bold text-blue-600 text-lg" id="coursesCompleted">0</div>
+                <div class="text-gray-600 text-xs">Cursos</div>
+            </div>
+            <div class="border-2 border-blue-200 rounded p-3 bg-blue-50">
+                <div class="font-bold text-blue-600 text-lg" id="coursesTotal">0</div>
+                <div class="text-gray-600 text-xs">Totales</div>
+            </div>
+            <div class="border-2 border-green-200 rounded p-3 bg-green-50">
+                <div class="font-bold text-green-600 text-lg" id="progressPercent">0%</div>
+                <div class="text-gray-600 text-xs">Avance</div>
+            </div>
+        </div>
+
+        <div class="border-t pt-3 mb-3">
+            <div class="text-xs font-semibold text-gray-700 mb-2">Créditos por categoría:</div>
+            <div class="space-y-1 text-xs">
+                <div class="flex justify-between"><span>CS (Computación):</span><span id="creditsCS" class="font-bold text-blue-600">0/0</span></div>
+                <div class="flex justify-between"><span>CC (Cálculo):</span><span id="creditsCC" class="font-bold text-purple-600">0/0</span></div>
+                <div class="flex justify-between"><span>HH (Humanidades):</span><span id="creditsHH" class="font-bold text-pink-600">0/0</span></div>
+                <div class="flex justify-between"><span>PI (Interdisciplinarios):</span><span id="creditsPI" class="font-bold text-orange-700">0/0</span></div>
+                <div class="flex justify-between"><span>GI (Gestión):</span><span id="creditsGI" class="font-bold text-green-600">0/0</span></div>
+            </div>
+        </div>
+
+        <button 
+            onclick="exportProgress()" 
+            class="w-full bg-blue-600 text-white px-3 py-2 rounded text-xs font-semibold mb-2 hover:bg-blue-700"
+        >
+            📥 Descargar Reporte
+        </button>
+
+        <button 
+            onclick="resetProgress()" 
+            class="w-full bg-red-500 text-white px-3 py-2 rounded text-xs font-semibold hover:bg-red-600"
+        >
+            🔄 Resetear Progreso
+        </button>
+    </div>
+
+    <!-- Main content -->
+    <div class="relative py-8">
+        <svg id="dependencySvg" class="dependencies"></svg>
+        
+        <div class="max-w-full overflow-x-auto">
+            <div class="min-w-max p-8 flex gap-0" id="curriculumContainer">
+                <!-- Levels will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div id="infoPanel" class="info-panel" style="border-color: #1e40af;">
+        <button onclick="closeInfo()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">✕</button>
+        <h3 id="infoCourseCode" class="font-bold text-blue-600 mb-2 text-lg"></h3>
+        <p id="infoCourseName" class="text-sm text-gray-700 mb-3"></p>
+        <div class="text-sm mb-3">
+            <span class="font-semibold text-gray-700">Créditos:</span>
+            <span id="infoCredits" class="text-blue-600 font-bold"></span>
+        </div>
+        <div class="mb-4">
+            <span class="font-semibold text-sm block mb-2 text-gray-700">Prerrequisitos:</span>
+            <div id="infoPrerequisites" class="text-xs text-gray-600 bg-gray-100 p-2 rounded max-h-24 overflow-y-auto"></div>
+        </div>
+        <label class="flex items-center gap-3 cursor-pointer bg-blue-50 p-3 rounded">
+            <input type="checkbox" id="courseCheckbox" onchange="toggleCourseComplete()" class="w-5 h-5 cursor-pointer">
+            <span class="text-sm font-semibold text-gray-700">Marcar como completado</span>
+        </label>
+    </div>
+
+    <script>
+        const csvData = `Nivel,Cod. Curso,Curso,Nro. Créditos,Pre-Requisitos
+1,CC1101,Cálculo de una variable,4,Ninguno
+1,CS1000,Introducción a la Ciencia de la Computación,2,Ninguno
+1,CS1021,Matemáticas Discretas I,4,Ninguno
+1,CS1111,Programación I,4,Ninguno
+1,HH1101,Laboratorio de Comunicación 1,3,Ninguno
+1,PI1101,Proyectos Interdisciplinarios 1,3,Ninguno
+2,CC1103,Álgebra Lineal,2,Cálculo de una variable (CC1101)
+2,CC1104,Cálculo Vectorial,3,Cálculo de una variable (CC1101)
+2,CC1123,Óptica y Ondas,4,Cálculo de una variable (CC1101)
+2,CS1022,Matemáticas Discretas II,4,Matemáticas Discretas I (CS1021)
+2,CS1112,Programación II,4,Programación I (CS1111)
+2,HH1102,Laboratorio de Comunicación 2,3,Laboratorio de Comunicación 1 (HH1101)
+3,CC1105,Estadística y Probabilidades I,4,"Cálculo de una variable (CC1101), Programación I (CS1111)"
+3,CC2101,Ecuaciones Diferenciales,3,Cálculo Vectorial (CC1104)
+3,CS2013,Programación III,4,Programación II (CS1112)
+3,CS2031,Desarrollo Basado en Plataformas,4,Programación II (CS1112)
+3,CS2041,Base de Datos I,4,Programación II (CS1112)
+3,PI2102,Proyectos Interdisciplinarios 2,3,Proyectos Interdisciplinarios 1 (PI1101)
+4,CC2104,Métodos Numéricos,3,"Programación I (CS1111), Álgebra Lineal (CC1103), Ecuaciones Diferenciales (CC2101)"
+4,CS2023,Algoritmos y Estructuras de Datos,4,Programación III (CS2013)
+4,CS2024,Teoría de la Computación,4,"Matemáticas Discretas II (CS1022), Programación III (CS2013)"
+4,CS2032,Cloud Computing,3,Desarrollo Basado en Plataformas (CS2031)
+4,CS3051,Arquitectura de Computadoras,4,Matemáticas Discretas II (CS1022)
+4,GI2101,Empresa y Consumidor,3,Ninguno
+5,CS2042,Base de Datos II,3,"Algoritmos y Estructuras de Datos (CS2023), Base de Datos I (CS2041)"
+5,CS3025,Compiladores,4,Teoría de la Computación (CS2024)
+5,CS3026,Análisis y Diseño de Algoritmos,4,Algoritmos y Estructuras de Datos (CS2023)
+5,CS3081,Ingeniería de Software,4,Cloud Computing (CS2032)
+5,HH2101,Perú: Temas de la sociedad contemporánea,3,Ninguno
+5,PI3103,Proyectos Interdisciplinarios 3,3,Proyectos Interdisciplinarios 2 (PI2102)
+6,CS3014,Estructura de Datos Avanzados,4,Análisis y Diseño de Algoritmos (CS3026)
+6,CS3015,Sistemas Operativos,4,Arquitectura de Computadoras (CS3051)
+6,CS3033,Programación Competitiva,4,Análisis y Diseño de Algoritmos (CS3026)
+6,CS3061,Machine Learning,4,"Programación II (CS1112), Estadística y Probabilidades I (CC1105)"
+6,GI3101,Finanzas Empresariales,3,Empresa y Consumidor (GI2101)
+6,HH2102,"Economía, Gobernanza y Relaciones de Poder",3,Ninguno
+7,CS4016,Computación Gráfica,4,"Análisis y Diseño de Algoritmos (CS3026), Óptica y Ondas (CC1123)"
+7,CS4052,Computación Paralela y Distribuida,4,Análisis y Diseño de Algoritmos (CS3026)
+7,CS4053,Interacción Humano Computador,4,"Programación II (CS1112), Óptica y Ondas (CC1123)"
+7,CS4054,Redes y Comunicaciones,3,Sistemas Operativos (CS3015)
+7,ELECTIVO1,ELECTIVO1,0,Depende del curso electivo elegido
+8,CS4091,Investigación en Computación,3,Análisis y Diseño de Algoritmos (CS3026)
+8,HH3101,Arte y Tecnología,3,Ninguno
+8,PR4101,Proyecto Preprofesional,8,100 Créditos aprobados
+9,CS5055,Internet de las Cosas,4,"Programación II (CS1112), Arquitectura de Computadoras (CS3051)"
+9,CS5101,Proyecto Final de Ciencia de la Computación I,4,130 Créditos aprobados
+9,ELECTIVO2,ELECTIVO2,0,Depende del curso electivo elegido
+9,ELECTIVO3,ELECTIVO3,0,Depende del curso electivo elegido
+9,GI4101,Evaluación Financiera de Proyectos,3,Finanzas Empresariales (GI3101)
+9,HH5101,Ética y Tecnología,3,Ninguno
+10,CS5011,Proyecto Final de Ciencia de la Computación II,4,Proyecto Final de Ciencia de la Computación I (CS5101)
+10,ELECTIVO4,ELECTIVO4,0,Depende del curso electivo elegido
+10,ELECTIVO5,ELECTIVO5,0,Depende del curso electivo elegido
+10,ELECTIVO6,ELECTIVO6,0,Depende del curso electivo elegido
+10,GI5101,Estrategia y Organizaciones,3,Evaluación Financiera de Proyectos (GI4101)`;
+
+        let courses = {};
+        let coursesByLevel = {};
+        let completedCourses = new Set();
+        let currentCourseCode = null;
+        let totalCreditsInCarreer = 0;
+
+        function parseCSV() {
+            const lines = csvData.trim().split('\n').slice(1);
+            lines.forEach(line => {
+                // Parser mejorado para manejar comillas en CSV
+                const parts = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        parts.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                parts.push(current.trim());
+                
+                if (parts.length >= 5) {
+                    const level = parseInt(parts[0]);
+                    const code = parts[1];
+                    const name = parts[2];
+                    const credits = parseInt(parts[3]);
+                    const prereqs = parts[4].replace(/"/g, ''); // Remover comillas
+
+                    courses[code] = {
+                        code,
+                        name,
+                        credits,
+                        prereqs,
+                        level
+                    };
+
+                    // Excluir ELECTIVOS del total de créditos
+                    if (!code.includes('ELECTIVO')) {
+                        totalCreditsInCarreer += credits;
+                    }
+
+                    if (!coursesByLevel[level]) coursesByLevel[level] = [];
+                    coursesByLevel[level].push(code);
+                }
+            });
+        }
+
+        function getCourseType(code) {
+            const prefix = code.split(/\d/)[0];
+            if (prefix === 'CS') return 'cs';
+            if (prefix === 'CC') return 'cc';
+            if (prefix === 'HH') return 'hh';
+            if (prefix === 'PI') return 'pi';
+            if (prefix === 'GI') return 'gi';
+            if (prefix === 'PR') return 'pr';
+            if (code.includes('ELECTIVO')) return 'electivo';
+            return 'cs';
+        }
+
+        function getDependentCourses(code) {
+            const dependents = [];
+            Object.keys(courses).forEach(courseCode => {
+                const course = courses[courseCode];
+                if (course.prereqs !== 'Ninguno' && course.prereqs.includes(code)) {
+                    dependents.push(courseCode);
+                }
+            });
+            return dependents;
+        }
+
+        function getDirectPrerequisites(code) {
+            const course = courses[code];
+            if (!course || course.prereqs === 'Ninguno') return [];
+            
+            // Dividir por comas primero, luego extraer códigos de cada parte
+            // Esto asegura capturar todos los códigos cuando hay múltiples prerequisitos
+            const parts = course.prereqs.split(',');
+            const prereqCodes = [];
+            
+            parts.forEach(part => {
+                const match = part.match(/[A-Z]{2}\d{4}(?:\d)?/);
+                if (match) {
+                    prereqCodes.push(match[0]);
+                }
+            });
+            
+            return prereqCodes;
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('completed_courses');
+            if (saved) {
+                completedCourses = new Set(JSON.parse(saved));
+            }
+        }
+
+        function saveProgress() {
+            localStorage.setItem('completed_courses', JSON.stringify(Array.from(completedCourses)));
+            updateStats();
+        }
+
+        function updateStats() {
+            let creditsCompleted = 0;
+            let creditsCS = 0, totalCS = 0;
+            let creditsCC = 0, totalCC = 0;
+            let creditsHH = 0, totalHH = 0;
+            let creditsPI = 0, totalPI = 0;
+            let creditsGI = 0, totalGI = 0;
+
+            Object.keys(courses).forEach(code => {
+                const course = courses[code];
+                
+                // Excluir ELECTIVOS del conteo
+                if (code.includes('ELECTIVO')) return;
+                
+                const type = getCourseType(code);
+                
+                if (type === 'cs') totalCS += course.credits;
+                else if (type === 'cc') totalCC += course.credits;
+                else if (type === 'hh') totalHH += course.credits;
+                else if (type === 'pi') totalPI += course.credits;
+                else if (type === 'gi') totalGI += course.credits;
+
+                if (completedCourses.has(code)) {
+                    creditsCompleted += course.credits;
+                    if (type === 'cs') creditsCS += course.credits;
+                    else if (type === 'cc') creditsCC += course.credits;
+                    else if (type === 'hh') creditsHH += course.credits;
+                    else if (type === 'pi') creditsPI += course.credits;
+                    else if (type === 'gi') creditsGI += course.credits;
+                }
+            });
+
+            const percent = totalCreditsInCarreer > 0 ? Math.round((creditsCompleted / totalCreditsInCarreer) * 100) : 0;
+            
+            // Contar solo cursos no-ELECTIVOS
+            let coursesTotal = 0;
+            let coursesCompleted = 0;
+            Object.keys(courses).forEach(code => {
+                if (!code.includes('ELECTIVO')) {
+                    coursesTotal++;
+                    if (completedCourses.has(code)) {
+                        coursesCompleted++;
+                    }
+                }
+            });
+
+            document.getElementById('creditsCompleted').textContent = creditsCompleted;
+            document.getElementById('creditsTotal').textContent = totalCreditsInCarreer || '0';
+            document.getElementById('creditsBar').style.width = (percent || 0) + '%';
+            document.getElementById('progressPercent').textContent = (percent || 0) + '%';
+            document.getElementById('coursesCompleted').textContent = coursesCompleted || '0';
+            document.getElementById('coursesTotal').textContent = coursesTotal || '0';
+
+            document.getElementById('creditsCS').textContent = (creditsCS || 0) + '/' + (totalCS || 0);
+            document.getElementById('creditsCC').textContent = (creditsCC || 0) + '/' + (totalCC || 0);
+            document.getElementById('creditsHH').textContent = (creditsHH || 0) + '/' + (totalHH || 0);
+            document.getElementById('creditsPI').textContent = (creditsPI || 0) + '/' + (totalPI || 0);
+            document.getElementById('creditsGI').textContent = (creditsGI || 0) + '/' + (totalGI || 0);
+        }
+
+        function renderCurriculum() {
+            const container = document.getElementById('curriculumContainer');
+            container.innerHTML = '';
+
+            for (let level = 1; level <= 10; level++) {
+                const courseCodes = coursesByLevel[level] || [];
+                
+                const levelDiv = document.createElement('div');
+                levelDiv.className = 'level-container';
+                levelDiv.innerHTML = `
+                    <div class="level-title">Semestre ${level}</div>
+                    <div class="courses-grid">
+                        ${courseCodes.map(code => {
+                            const course = courses[code];
+                            const type = getCourseType(code);
+                            const isCompleted = completedCourses.has(code);
+                            return `
+                                <div 
+                                    class="course-node ${type} ${isCompleted ? 'completed' : ''}" 
+                                    data-code="${code}"
+                                    onclick="showCourseInfo('${code}')"
+                                >
+                                    <span class="course-code">${code}</span>
+                                    <span class="course-name">${course.name}</span>
+                                    ${course.credits > 0 ? `<span class="course-credits">${course.credits} créditos</span>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(levelDiv);
+            }
+
+            drawDependencies();
+            updateStats();
+        }
+
+        function drawDependencies() {
+            const svg = document.getElementById('dependencySvg');
+            const container = document.getElementById('curriculumContainer');
+            
+            svg.setAttribute('width', container.offsetWidth);
+            svg.setAttribute('height', container.offsetHeight);
+            svg.innerHTML = '';
+
+            Object.keys(courses).forEach(code => {
+                const course = courses[code];
+                const sourceEl = document.querySelector(`[data-code="${code}"]`);
+                
+                if (!sourceEl || course.prereqs === 'Ninguno') return;
+
+                const prereqText = course.prereqs;
+                const prereqCodes = prereqText.match(/[A-Z]{2}\d{4}(?:\d)?/g) || [];
+
+                prereqCodes.forEach(prereqCode => {
+                    const targetEl = document.querySelector(`[data-code="${prereqCode}"]`);
+                    if (targetEl) {
+                        const sourceRect = sourceEl.getBoundingClientRect();
+                        const targetRect = targetEl.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+
+                        const x1 = targetRect.right - containerRect.left + 10;
+                        const y1 = targetRect.top - containerRect.top + targetRect.height / 2;
+                        const x2 = sourceRect.left - containerRect.left - 10;
+                        const y2 = sourceRect.top - containerRect.top + sourceRect.height / 2;
+
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x1);
+                        line.setAttribute('y1', y1);
+                        line.setAttribute('x2', x2);
+                        line.setAttribute('y2', y2);
+                        line.setAttribute('class', 'prerequisite-link');
+                        line.setAttribute('data-source', code);
+                        line.setAttribute('data-target', prereqCode);
+
+                        svg.appendChild(line);
+                    }
+                });
+            });
+        }
+
+        function showCourseInfo(code) {
+            currentCourseCode = code;
+            const course = courses[code];
+            document.getElementById('infoCourseCode').textContent = code;
+            document.getElementById('infoCourseName').textContent = course.name;
+            document.getElementById('infoCredits').textContent = course.credits + ' créditos';
+            
+            // Obtener los prerequisitos directos
+            const directPrereqs = getDirectPrerequisites(code);
+            const prereqDiv = document.getElementById('infoPrerequisites');
+            
+            if (directPrereqs.length === 0 && course.prereqs === 'Ninguno') {
+                prereqDiv.innerHTML = '<span class="text-green-600 font-semibold">✓ No tiene prerrequisitos</span>';
+            } else if (directPrereqs.length === 0) {
+                // Mostrar el prereq string original si no se pudo extraer códigos
+                prereqDiv.innerHTML = course.prereqs;
+            } else {
+                // Mostrar los prerequisitos en formato legible
+                prereqDiv.innerHTML = directPrereqs.map(c => `${c} - ${courses[c] ? courses[c].name : 'No encontrado'}`).join('<br>');
+            }
+
+            const checkbox = document.getElementById('courseCheckbox');
+            checkbox.checked = completedCourses.has(code);
+
+            document.getElementById('infoPanel').classList.add('active');
+
+            // Limpiar todas las clases previas
+            document.querySelectorAll('.course-node').forEach(el => {
+                el.classList.remove('highlight-course', 'dim-course');
+            });
+            
+            // Resaltar solo el curso seleccionado
+            document.querySelector(`[data-code="${code}"]`).classList.add('highlight-course');
+
+            // Resaltar solo los prerequisitos directos
+            directPrereqs.forEach(preCode => {
+                const el = document.querySelector(`[data-code="${preCode}"]`);
+                if (el) el.classList.add('highlight-course');
+            });
+
+            // Dimmer todos los otros cursos
+            document.querySelectorAll('.course-node:not(.highlight-course)').forEach(el => {
+                el.classList.add('dim-course');
+            });
+
+            // Activar solo las líneas que conectan prerequisitos al curso seleccionado
+            document.querySelectorAll('.prerequisite-link').forEach(line => {
+                const source = line.getAttribute('data-source');
+                const target = line.getAttribute('data-target');
+                
+                // Activar líneas que entran al curso (target = course, source = prerequisito)
+                if (target === code && directPrereqs.includes(source)) {
+                    line.classList.add('active');
+                    line.classList.remove('related');
+                } else {
+                    line.classList.remove('active', 'related');
+                }
+            });
+        }
+
+        function toggleCourseComplete() {
+            if (!currentCourseCode) return;
+            
+            if (completedCourses.has(currentCourseCode)) {
+                completedCourses.delete(currentCourseCode);
+                document.querySelector(`[data-code="${currentCourseCode}"]`).classList.remove('completed');
+            } else {
+                completedCourses.add(currentCourseCode);
+                document.querySelector(`[data-code="${currentCourseCode}"]`).classList.add('completed');
+            }
+            
+            saveProgress();
+        }
+
+        function closeInfo() {
+            document.getElementById('infoPanel').classList.remove('active');
+            document.querySelectorAll('.course-node').forEach(el => {
+                el.classList.remove('highlight-course', 'dim-course');
+            });
+            document.querySelectorAll('.prerequisite-link').forEach(line => {
+                line.classList.remove('active', 'related');
+            });
+        }
+
+        function exportProgress() {
+            let report = 'REPORTE DE PROGRESO ACADÉMICO\n';
+            report += '============================\n\n';
+            report += `Fecha: ${new Date().toLocaleDateString('es-ES')}\n`;
+            report += `Carrera: Ciencia de la Computación\n\n`;
+            
+            let creditsCompleted = 0;
+            Object.keys(courses).forEach(code => {
+                if (completedCourses.has(code)) {
+                    creditsCompleted += courses[code].credits;
+                }
+            });
+            
+            report += `Créditos completados: ${creditsCompleted} / ${totalCreditsInCarreer}\n`;
+            report += `Porcentaje: ${totalCreditsInCarreer > 0 ? Math.round((creditsCompleted / totalCreditsInCarreer) * 100) : 0}%\n\n`;
+            
+            report += 'CURSOS COMPLETADOS:\n';
+            report += '-------------------\n';
+            completedCourses.forEach(code => {
+                const course = courses[code];
+                report += `${code} - ${course.name} (${course.credits} créditos)\n`;
+            });
+
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(report));
+            element.setAttribute('download', 'progreso_academico.txt');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        function resetProgress() {
+            if (confirm('¿Estás seguro de que deseas resetear todo el progreso?')) {
+                completedCourses = new Set();
+                localStorage.removeItem('completed_courses');
+                document.querySelectorAll('.course-node').forEach(el => {
+                    el.classList.remove('completed');
+                });
+                closeInfo();
+                updateStats();
+            }
+        }
+
+        // Drag functionality para stats panel
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+
+        const statsPanel = document.getElementById('statsPanel');
+
+        statsPanel.addEventListener('mousedown', handleStart);
+        document.addEventListener('mousemove', handleMove);
+        document.addEventListener('mouseup', handleEnd);
+
+        statsPanel.addEventListener('touchstart', handleStart);
+        document.addEventListener('touchmove', handleMove);
+        document.addEventListener('touchend', handleEnd);
+
+        function handleStart(e) {
+            if (e.target.closest('.stats-panel-header')) {
+                isDragging = true;
+                initialX = e.clientX || e.touches[0].clientX;
+                initialY = e.clientY || e.touches[0].clientY;
+                statsPanel.classList.add('dragging');
+            }
+        }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+
+            currentX = (e.clientX || e.touches[0].clientX) - initialX;
+            currentY = (e.clientY || e.touches[0].clientY) - initialY;
+
+            statsPanel.style.transform = `translate(${currentX}px, ${currentY}px)`;
+        }
+
+        function handleEnd() {
+            isDragging = false;
+            statsPanel.classList.remove('dragging');
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.course-node').forEach(el => {
+                const code = el.getAttribute('data-code');
+                const course = courses[code];
+                const match = code.toLowerCase().includes(query) || 
+                             course.name.toLowerCase().includes(query);
+                                
+                if (query === '') {
+                    el.style.display = 'block';
+                } else {
+                    el.style.display = match ? 'block' : 'none';
+                }
+            });
+        });
+
+        // Initialize
+        parseCSV();
+        loadProgress();
+        renderCurriculum();
+    </script>
 </body>
 </html>
